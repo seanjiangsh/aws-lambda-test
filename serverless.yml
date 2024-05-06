@@ -1,0 +1,73 @@
+service: aws-lambda-test
+frameworkVersion: "3"
+
+plugins:
+  - serverless-s3-deploy
+  - serverless-offline
+  - serverless-plugin-typescript
+
+custom:
+  bucket: aws-lambda-test-sj
+  assets:
+    auto: true
+    targets:
+      - bucket: ${self:custom.bucket}
+        empty: true
+        files:
+          - source: dist
+            globs: "**/*"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-northeast-1
+
+functions:
+  app:
+    handler: src/index.handler
+    role: Role
+    events:
+      - httpApi: "*"
+
+resources:
+  Resources:
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucket}
+        AccessControl: Private
+    Role:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: lambdaRole_${self:custom.bucket}
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: LambdaBasic
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - logs:CreateLogStream
+                    - logs:CreateLogGroup
+                    - logs:TagResource
+                    - logs:PutLogEvents
+                  Resource: arn:aws:logs:${self:provider.region}:*:log-group:/aws/lambda/*
+                  Effect: Allow
+          - PolicyName: S3AccessPolicy
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Action:
+                    - s3:Get*
+                    - s3:List*
+                    - s3:Describe*
+                    - s3-object-lambda:Get*
+                    - s3-object-lambda:List*
+                  Resource: arn:aws:s3:::${self:custom.bucket}/*
+                  Effect: Allow

@@ -1,0 +1,13 @@
+### /
+GET http://localhost:3000/ HTTP/1.1
+
+###
+POST http://localhost:3000/api/graphql
+Content-Type: application/json
+
+{
+    "query": "query Categories {\n  categories {\n    items {\n      name\n      price\n    }\n  }\n}",
+    "variables": {},
+    "operationName": "Categories"
+}
+
